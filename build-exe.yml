@@ -1,0 +1,45 @@
+name: Build FraudWorkflow.exe (Windows 32-bit)
+
+on:
+  workflow_dispatch:      # دکمه‌ی اجرای دستی در تب Actions
+  push:
+    branches: [ main ]
+    paths:
+      - "fraud_workflow.py"
+      - "requirements_workflow.txt"
+      - ".github/workflows/build-exe.yml"
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.8 (32-bit / x86)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.8.10"
+          architecture: "x86"
+
+      - name: Verify 32-bit Python
+        run: python -c "import struct,sys; print(struct.calcsize('P')*8, 'bit'); assert struct.calcsize('P')*8==32"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements_workflow.txt
+
+      - name: Build exe with PyInstaller
+        run: >
+          pyinstaller --noconfirm --onefile --windowed --name FraudWorkflow
+          --hidden-import openpyxl.cell._writer
+          --exclude-module matplotlib --exclude-module IPython
+          fraud_workflow.py
+
+      - name: Upload exe as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FraudWorkflow-win32-exe
+          path: dist/FraudWorkflow.exe
+          retention-days: 30
